@@ -1,0 +1,1 @@
+This is a soduko game, you can play yourself using the GUI or make it solve it using the Main. 
