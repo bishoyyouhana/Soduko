@@ -36,7 +36,7 @@ def find_empty_cell(board):
 
 def solve_board(board):
     #print_board(board)  debugging purposes
-    print("\n")
+    #print("\n")
     emptyCell = find_empty_cell(board)
     if not emptyCell:
         return True 

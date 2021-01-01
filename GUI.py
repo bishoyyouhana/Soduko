@@ -1,6 +1,6 @@
 # GUI.py
 import pygame
-from Main import solve_board, optionWorks
+from Main import solve_board, optionWorks, find_empty_cell
 import time
 pygame.font.init()
 
@@ -19,7 +19,7 @@ class Grid:
         [0, 4, 9, 2, 0, 6, 0, 0, 7]
     ]
 
-    def __init__(self, rows, cols, width, height):
+    def __init__(self, rows, cols, width, height,win):
         self.rows = rows
         self.cols = cols
         self.cubes = [[Cube(self.board[i][j], i, j, width, height) for j in range(cols)] for i in range(rows)]
@@ -27,6 +27,8 @@ class Grid:
         self.height = height
         self.model = None
         self.selected = None
+        self.update_model()
+        self.win =win 
 
     def update_model(self):
         self.model = [[self.cubes[i][j].value for j in range(self.cols)] for i in range(self.rows)]
@@ -99,6 +101,53 @@ class Grid:
                     return False
         return True
 
+    def solve(self):
+        find = find_empty_cell(self.model)
+        if not find:
+            return True
+        else:
+            row, col = find
+
+        for i in range(1, 10):
+            if optionWorks(self.model, i, (row, col)):
+                self.model[row][col] = i
+
+                if self.solve():
+                    return True
+
+                self.model[row][col] = 0
+
+        return False
+
+    def solve_gui(self):
+        self.update_model()
+        find = find_empty_cell(self.model)
+        if not find:
+            return True
+        else:
+            row, col = find
+
+        for i in range(1, 10):
+            if optionWorks(self.model, i, (row, col)):
+                self.model[row][col] = i
+                self.cubes[row][col].set(i)
+                self.cubes[row][col].draw_change(self.win, True)
+                self.update_model()
+                pygame.display.update()
+                pygame.time.delay(100)
+
+                if self.solve_gui():
+                    return True
+
+                self.model[row][col] = 0
+                self.cubes[row][col].set(0)
+                self.update_model()
+                self.cubes[row][col].draw_change(self.win, False)
+                pygame.display.update()
+                pygame.time.delay(100)
+
+        return False
+
 
 class Cube:
     rows = 9
@@ -129,6 +178,23 @@ class Cube:
 
         if self.selected:
             pygame.draw.rect(win, (255,0,0), (x,y, gap ,gap), 3)
+
+    def draw_change(self, win, g=True):
+        fnt = pygame.font.SysFont("comicsans", 40)
+
+        gap = self.width / 9
+        x = self.col * gap
+        y = self.row * gap
+
+        pygame.draw.rect(win, (255, 255, 255), (x, y, gap, gap), 0)
+
+        text = fnt.render(str(self.value), 1, (0, 0, 0))
+        win.blit(text, (x + (gap / 2 - text.get_width() / 2), y + (gap / 2 - text.get_height() / 2)))
+        if g:
+            pygame.draw.rect(win, (0, 255, 0), (x, y, gap, gap), 3)
+        else:
+            pygame.draw.rect(win, (255, 0, 0), (x, y, gap, gap), 3)
+
 
     def set(self, val):
         self.value = val
@@ -162,7 +228,7 @@ def format_time(secs):
 def main():
     win = pygame.display.set_mode((540,600))
     pygame.display.set_caption("Sudoku")
-    board = Grid(9, 9, 540, 540)
+    board = Grid(9, 9, 540, 540, win)
     key = None
     run = True
     start = time.time()
@@ -196,6 +262,8 @@ def main():
                 if event.key == pygame.K_DELETE:
                     board.clear()
                     key = None
+                if event.key == pygame.K_SPACE:
+                    board.solve_gui()
                 if event.key == pygame.K_RETURN:
                     i, j = board.selected
                     if board.cubes[i][j].temp != 0:
